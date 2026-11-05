@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Вовлечение команды</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap&subset=cyrillic" rel="stylesheet">
+<style>
+  :root {
+    --bg: #E1E8F3;
+    --accent: #5E86C2;
+    --ink: #1d2b44;
+    --card: #ffffff;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Roboto', Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.5;
+  }
+  .practice {
+    width: 100%;
+    padding: 24px clamp(16px, 4vw, 48px) 32px;
+  }
+  .question {
+    background: var(--card);
+    border-left: 6px solid var(--accent);
+    border-radius: 8px;
+    padding: 18px 20px 20px;
+    margin-bottom: 18px;
+  }
+  .question label, .question .q-title {
+    display: block;
+    font-weight: 500;
+    font-size: 18px;
+    margin-bottom: 10px;
+  }
+  .task { margin: 0 0 14px; font-size: 18px; font-weight: 500; }
+  textarea, input[type="text"] {
+    width: 100%;
+    font: inherit;
+    color: var(--ink);
+    padding: 12px 14px;
+    border: 2px solid #c9d5e8;
+    border-radius: 6px;
+    background: #f9fbfe;
+  }
+  textarea { min-height: 180px; resize: vertical; }
+  input[type="text"] { margin-bottom: 10px; }
+  input[type="text"]:last-child { margin-bottom: 0; }
+  textarea:focus, input[type="text"]:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(94,134,194,.3);
+  }
+  button {
+    font: inherit;
+    font-weight: 500;
+    font-size: 16px;
+    color: #fff;
+    background: var(--accent);
+    border: 2px solid var(--accent);
+    border-radius: 8px;
+    padding: 12px 24px;
+    cursor: pointer;
+    transition: background .15s, transform .05s;
+  }
+  button:hover:not(:disabled) { background: #4a72ad; border-color: #4a72ad; }
+  button:active:not(:disabled) { transform: translateY(1px); }
+  button:focus-visible { outline: 3px solid #1d2b44; outline-offset: 2px; }
+  button:disabled {
+    background: #b9c7de;
+    border-color: #b9c7de;
+    color: #6f7f99;
+    cursor: not-allowed;
+  }
+  .actions { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .hint { font-size: 14px; color: #2c3e5e; }
+  .hint[hidden] { display: none; }
+  #status { font-size: 14px; min-height: 1.4em; margin-top: 10px; }
+
+  #pdf-wrap { position: fixed; left: 0; top: 0; width: 0; height: 0; overflow: hidden; pointer-events: none; }
+  #pdf-sheet {
+    width: 700px;
+    padding: 32px;
+    background: #fff;
+    color: #1d2b44;
+    font-family: 'Roboto', Arial, sans-serif;
+  }
+  #pdf-sheet h2 { margin: 0 0 4px; font-size: 22px; color: #5E86C2; }
+  #pdf-sheet .date { margin: 0 0 20px; font-size: 12px; color: #5b6b85; }
+  #pdf-sheet h3 { margin: 18px 0 6px; font-size: 15px; }
+  #pdf-sheet p.ans {
+    margin: 0 0 6px;
+    padding: 10px 12px;
+    border-left: 4px solid #5E86C2;
+    background: #eef3fa;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-size: 14px;
+  }
+</style>
+</head>
+<body>
+<main class="practice">
+  <section class="question">
+    <p class="task" id="task">Напиши сообщение в рабочий чат команды (или набросай план устного обращения), в котором ты проявляешь лидерскую позицию и вовлекаешь ребят в эту задачу, последовательно задействовав все 4 драйвера вовлечения: эмоции, смысл, действие, видение.</p>
+    <textarea id="q1" aria-labelledby="task" placeholder="Напиши свой ответ"></textarea>
+  </section>
+
+  <div class="actions">
+    <button id="save" type="button" disabled>Скачать в PDF</button>
+    <span class="hint" id="hint">Заполни поле, чтобы скачать результат</span>
+  </div>
+  <div id="status" role="status" aria-live="polite"></div>
+</main>
+
+<div id="pdf-wrap" aria-hidden="true">
+<div id="pdf-sheet">
+  <h2>Вовлечение команды: четыре драйвера</h2>
+  <p class="date" id="pdf-date"></p>
+  <h3 id="pdf-task"></h3>
+  <p class="ans" id="pdf-a1"></p>
+</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var rules = [ ['q1', 10] ];
+  var btn = $('save'), status = $('status'), hint = $('hint');
+
+  function update() {
+    var ok = rules.every(function (r) { return $(r[0]).value.trim().length >= r[1]; });
+    btn.disabled = !ok;
+    hint.hidden = ok;
+  }
+  rules.forEach(function (r) { $(r[0]).addEventListener('input', update); });
+
+  btn.addEventListener('click', function () {
+    if (btn.disabled) return;
+    $('pdf-task').textContent = $('task').textContent;
+    $('pdf-a1').textContent = $('q1').value.trim();
+    $('pdf-date').textContent = new Date().toLocaleDateString('ru-RU');
+    status.textContent = 'Готовлю PDF…';
+    window.scrollTo(0, 0);
+
+    function fallback() {
+      status.textContent = 'Не удалось создать PDF автоматически. В открывшемся окне печати выбери «Сохранить как PDF».';
+      window.print();
+    }
+    if (!window.html2pdf) { fallback(); return; }
+    html2pdf().set({
+      margin: 10,
+      filename: 'praktika-2.pdf',
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, scrollX: 0, scrollY: 0 },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    }).from($('pdf-sheet')).save().then(function () {
+      status.textContent = 'PDF сохранён.';
+    }).catch(fallback);
+  });
+
+  update();
+})();
+</script>
+</body>
+</html>
